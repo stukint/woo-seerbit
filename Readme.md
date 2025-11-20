@@ -1,0 +1,1 @@
+Woocommerce plugin for Seerbit payment gateway v1.0.0
