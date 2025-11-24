@@ -559,7 +559,9 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 
 		}
 
-		$payment_channels = array('card');
+		$payment_methods = array('card');
+
+		$seerbit_params['payment_methods'] = $payment_methods;
 
 		wp_localize_script( 'wc_seerbit', 'wc_seerbit_params', $seerbit_params );
 
@@ -587,4 +589,37 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
         
         wp_localize_script( 'wc_seerbit_admin', 'wc_seerbit_admin_params', $seerbit_admin_params );
     }
+
+	/**
+	 * Process the payment.
+	 *
+	 * @param int $order_id
+	 *
+	 * @return array|void
+	 */
+	public function process_payment( $order_id ) {
+		//ADD Token payment later
+
+		$order = wc_get_order( $order_id );
+
+		if ( 'redirect' === $this->payment_page ) {
+			return $this->process_redirect_payment_option( $order_id );
+		}
+
+		return array(
+			'result'   => 'success',
+			'redirect' => $order->get_checkout_payment_url( true ),
+		);
+	}
+
+	/**
+	 * Process a redirect payment option payment.
+	 *
+	 * @since 5.7
+	 * @param int $order_id
+	 * @return array|void
+	 */
+	public function process_redirect_payment_option( $order_id ) {
+		//ADD Redirect payment logic
+	}
 }
