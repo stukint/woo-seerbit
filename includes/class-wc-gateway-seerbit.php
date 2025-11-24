@@ -509,7 +509,7 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 		$suffix = '';
 
 		//$version = WC_SEERBIT_VERSION;
-		$version = '10.0.3';
+		$version = '10.0.4';
 
 		wp_enqueue_script( 'jquery' );
 

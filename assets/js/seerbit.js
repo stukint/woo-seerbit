@@ -31,7 +31,8 @@ jQuery( function( $ ) {
         
         let amount = Number( wc_seerbit_params.amount );
 
-        let seerbit_callback = function( transaction ) {
+        let seerbit_callback = function(response, closeModal) {
+            console.log(response);
             $form.append( '<input type="hidden" class="seerbit_tranref" name="seerbit_tranref" value="' + 'tranref-placeholder' + '"/>' );
             seerbit_submit = true;
     
@@ -48,6 +49,11 @@ jQuery( function( $ ) {
                 }
             } );
         };
+
+        let seerbit_close_callback = function(){
+            $( '#wc-seerbit-form' ).show();
+				$( this.el ).unblock();
+        }
     
         let paymentData = {
             public_key: wc_seerbit_params.public_key,
@@ -55,8 +61,8 @@ jQuery( function( $ ) {
             currency: wc_seerbit_params.currency,
             tranref: wc_seerbit_params.tranref,
             amount: amount,
-            description: wc_seerbit_params.public_key,
-            full_name: wc_seerbit_params.public_key,
+            description: wc_seerbit_params.description,
+            full_name: wc_seerbit_params.full_name,
             customization: {
                 confetti: false
             }
@@ -74,8 +80,7 @@ jQuery( function( $ ) {
             paymentData.customization['payment_method'] = wc_seerbit_params.payment_methods;
         }
 
-        console.log(paymentData);
-
+        SeerbitPay (paymentData, seerbit_callback, seerbit_close_callback);
     }
 
 });
