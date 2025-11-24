@@ -486,7 +486,84 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
     /**
 	 * Outputs scripts used for seerbit payment.
 	 */
-	public function payment_scripts() {}
+	public function payment_scripts() {
+
+		if ( isset( $_GET['pay_for_order'] ) || ! is_checkout_pay_page() ) {
+			return;
+		}
+
+		if ( $this->enabled === 'no' ) {
+			return;
+		}
+
+		$order_key = urldecode( $_GET['key'] );
+		$order_id  = absint( get_query_var( 'order-pay' ) );
+
+		$order = wc_get_order( $order_id );
+
+		if ( $this->id !== $order->get_payment_method() ) {
+			return;
+		}
+
+		//$suffix = ( defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ) ? '' : '.min';
+		$suffix = '';
+
+		//$version = WC_SEERBIT_VERSION;
+		$version = '10.0.0';
+
+		wp_enqueue_script( 'jquery' );
+
+		wp_enqueue_script( 'seerbit', 'https://checkout.seerbitapi.com/api/v2/seerbit.js', array( 'jquery' ), WC_SEERBIT_VERSION, false );
+
+		wp_enqueue_script( 'wc_seerbit', plugins_url( 'assets/js/seerbit' . $suffix . '.js', WC_SEERBIT_MAIN_FILE ), array( 'jquery', 'seerbit' ), $version, false );
+
+		$seerbit_params = array(
+			'public_key' => $this->public_key
+		);
+
+		if ( is_checkout_pay_page() && get_query_var( 'order-pay' ) ) {
+
+			$email         = $order->get_billing_email();
+			$first_name	   = $order->get_billing_first_name();
+			$last_name	   = $order->get_billing_last_name();
+			$customer_name = $first_name . ' ' . $last_name;
+			$amount        = $order->get_total();
+			$tranref        = 'Seebit_'. $order_id . '_' . time();
+			$site_name     = get_option( 'blogname' );
+			$payment_descr = 'Payment for ' . $site_name . ' #' . $order_id;
+			$the_order_id  = $order->get_id();
+			$the_order_key = $order->get_order_key();
+			$currency      = $order->get_currency();
+
+			if ( $the_order_id == $order_id && $the_order_key == $order_key ) {
+
+				$seerbit_params['email'] = $email;
+				$seerbit_params['currency'] = $currency;
+				$seerbit_params['tranref'] = $tranref;
+				$seerbit_params['amount'] = $amount;
+				$seerbit_params['description'] = $payment_descr;
+				$seerbit_params['full_name'] = $customer_name;
+
+			}
+
+			if($this->split_payment){
+				$seerbit_params['splitCode'] = $this->split_code;
+			}
+
+			if($this->tokenize_cards){
+				$seerbit_params['tokenize'] = true;
+			}
+
+			$order->update_meta_data( '_seerbit_tranref', $tranref );
+			$order->save();
+
+		}
+
+		$payment_channels = array('card');
+
+		wp_localize_script( 'wc_seerbit', 'wc_seerbit_params', $seerbit_params );
+
+	}
 
     /**
 	 * Load admin scripts.
