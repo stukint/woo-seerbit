@@ -71,7 +71,7 @@ jQuery( function( $ ) {
         }
 
         if(wc_seerbit_params.payment_methods){
-            paymentData.customization['payment_method'] = wc_seerbit_params.wc_seerbit_params.payment_methods;
+            paymentData.customization['payment_method'] = wc_seerbit_params.payment_methods;
         }
 
         console.log(paymentData);
