@@ -32,8 +32,9 @@ jQuery( function( $ ) {
 			$( '#woocommerce_seerbit_testmode' ).change();
 
 			$( document.body ).on( 'change', '#woocommerce_seerbit_split_payment', function() {
-				console.log('checkbox clicked');
-				// var split_code = $( 'woocommerce_seerbit_split_code' ).closest( 'tr' );
+				
+				var split_code = $( 'woocommerce_seerbit_split_code' ).closest( 'tr' );
+				console.log(split_code);
 
 				// if ( $( this ).is( ':checked' ) ) {
 				// 	split_code.show();
