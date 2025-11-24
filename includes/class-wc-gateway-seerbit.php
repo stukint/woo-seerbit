@@ -242,7 +242,7 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 	 */
 	public function get_icon() {
 
-        $icon = '<img src="' . WC_HTTPS::force_https_url( plugins_url( 'assets/images/seerbit-logo.png', WC_SEERBIT_MAIN_FILE ) ) . '" alt="Seerbit Payment Options" />';
+        $icon = '<img src="' . WC_HTTPS::force_https_url( plugins_url( 'assets/images/seerbit-logo.png', WC_SEERBIT_MAIN_FILE ) ) . '" width="200px" alt="Seerbit Payment Options" />';
 
         return apply_filters( 'woocommerce_gateway_icon', $icon, $this->id );
 
@@ -509,7 +509,7 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 		$suffix = '';
 
 		//$version = WC_SEERBIT_VERSION;
-		$version = '10.0.0';
+		$version = '10.0.1';
 
 		wp_enqueue_script( 'jquery' );
 
