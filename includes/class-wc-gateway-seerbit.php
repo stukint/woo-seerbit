@@ -292,7 +292,7 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 	 * Admin Panel Options.
 	 */
 	public function admin_options() {
-
+        error_log(print_r("This Fires", true));
         ?>
         <h2>
             <?php 
@@ -508,6 +508,7 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 		);
 
         wp_enqueue_script( 'wc_seerbit_admin', plugins_url( 'assets/js/seerbit-admin' . $suffix . '.js', WC_SEERBIT_MAIN_FILE ), array(), $version, true );
+        
         wp_localize_script( 'wc_seerbit_admin', 'wc_seerbit_admin_params', $seerbit_admin_params );
     }
 }
