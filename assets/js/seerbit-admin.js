@@ -31,7 +31,7 @@ jQuery( function( $ ) {
 
 			$( '#woocommerce_seerbit_testmode' ).change();
 
-			$( document.body ).on( 'change', '.woocommerce_seerbit_split_payment', function() {
+			$( document.body ).on( 'change', '#woocommerce_seerbit_split_payment', function() {
 				var split_code = $( 'woocommerce_seerbit_split_code' ).closest( 'tr' );
 
 				if ( $( this ).is( ':checked' ) ) {

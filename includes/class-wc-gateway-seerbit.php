@@ -501,7 +501,7 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
         $suffix = '';
 
         //$version = WC_SEERBIT_VERSION;
-        $version = '10.0.2';
+        $version = '10.0.3';
 
         $seerbit_admin_params = array(
 			'plugin_url' => WC_SEERBIT_URL,
