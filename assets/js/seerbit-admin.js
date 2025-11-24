@@ -32,13 +32,14 @@ jQuery( function( $ ) {
 			$( '#woocommerce_seerbit_testmode' ).change();
 
 			$( document.body ).on( 'change', '#woocommerce_seerbit_split_payment', function() {
-				var split_code = $( 'woocommerce_seerbit_split_code' ).closest( 'tr' );
+				console.log('checkbox clicked');
+				// var split_code = $( 'woocommerce_seerbit_split_code' ).closest( 'tr' );
 
-				if ( $( this ).is( ':checked' ) ) {
-					split_code.show();
-				}else{
-					split_code.hide();
-				}
+				// if ( $( this ).is( ':checked' ) ) {
+				// 	split_code.show();
+				// }else{
+				// 	split_code.hide();
+				// }
 			});
 
 			$( '#woocommerce_seerbit_split_payment' ).change();
