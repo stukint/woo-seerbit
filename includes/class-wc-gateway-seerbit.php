@@ -509,7 +509,7 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 		$suffix = '';
 
 		//$version = WC_SEERBIT_VERSION;
-		$version = '10.0.1';
+		$version = '10.0.2';
 
 		wp_enqueue_script( 'jquery' );
 
@@ -547,7 +547,7 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 			}
 
 			if($this->split_payment){
-				$seerbit_params['splitCode'] = $this->split_code;
+				$seerbit_params['split_code'] = $this->split_code;
 			}
 
 			if($this->tokenize_cards){
