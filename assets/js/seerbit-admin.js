@@ -31,21 +31,19 @@ jQuery( function( $ ) {
 
 			$( '#woocommerce_seerbit_testmode' ).change();
 
-			$( document.body ).on( 'change', '#woocommerce_seerbit_split_payment', function() {
-				
-				var split_code = $( 'woocommerce_seerbit_split_code' ).closest( 'tr' );
-				console.log(split_code);
+			$( document.body ).on( 'change', '.woocommerce_seerbit_split_payment', function() {
+				var split_code = $( '.woocommerce_seerbit_split_code' ).parents( 'tr' );
 
-				// if ( $( this ).is( ':checked' ) ) {
-				// 	split_code.show();
-				// }else{
-				// 	split_code.hide();
-				// }
+				if ( $( this ).is( ':checked' ) ) {
+					split_code.show();
+				}else{
+					split_code.hide();
+				}
 			});
 
 			$( '#woocommerce_seerbit_split_payment' ).change();
 
-			$( document.body ).on( 'change', 'woocommerce_seerbit_tokenize_cards', function() {
+			$( document.body ).on( 'change', '.woocommerce_seerbit_tokenize_cards', function() {
 				var saved_cards = $( '.woocommerce_seerbit_saved_cards' ).parents( 'tr' ).eq( 0 );
 
 				if ( $( this ).is( ':checked' ) ) {
@@ -54,6 +52,8 @@ jQuery( function( $ ) {
 					saved_cards.hide();
 				}
 			});
+
+			$( '#woocommerce_seerbit_tokenize_cards' ).change();
 
 			$( '#woocommerce_seerbit_test_secret_key, #woocommerce_seerbit_live_secret_key' ).after(
 				'<button class="wc-seerbit-toggle-secret" style="height: 30px; margin-left: 2px; cursor: pointer"><span class="dashicons dashicons-visibility"></span></button>'
