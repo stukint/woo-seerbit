@@ -330,7 +330,7 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
         $form_fields = array(
             'enabled' => array(
                 'title'       => __( 'Enable/Disable', 'woo-seerbit' ),
-				'label'       => __( 'Enable Paystack', 'woo-seerbit' ),
+				'label'       => __( 'Enable Seerbit', 'woo-seerbit' ),
 				'type'        => 'checkbox',
 				'description' => __( 'Enable Seerbit as a payment option on the checkout page.', 'woo-seerbit' ),
 				'default'     => 'no',
