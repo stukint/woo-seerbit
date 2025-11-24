@@ -497,11 +497,10 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 			return;
 		}
 
-        //$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
-        $suffix = '';
+        $suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
 
-        //$version = WC_SEERBIT_VERSION;
-        $version = '10.0.6';
+        $version = WC_SEERBIT_VERSION;
+        
 
         $seerbit_admin_params = array(
 			'plugin_url' => WC_SEERBIT_URL,
