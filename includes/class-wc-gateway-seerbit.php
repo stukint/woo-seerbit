@@ -622,4 +622,27 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 	public function process_redirect_payment_option( $order_id ) {
 		//ADD Redirect payment logic
 	}
+
+	/**
+	 * Displays the payment page.
+	 *
+	 * @param $order_id
+	 */
+	public function receipt_page( $order_id ) {
+
+		$order = wc_get_order( $order_id );
+
+		echo '<div id="wc-seerbit-form">';
+
+		echo '<p>' . __( 'Thank you for your order, please click the button below to pay with Seerbit.', 'woo-seerbit' ) . '</p>';
+
+		echo '<div id="seerbit_form"><form id="order_review" method="post" action="' . WC()->api_request_url( 'WC_Gateway_Seerbit' ) . '"></form><button class="button" id="seerbit-payment-button">' . __( 'Pay Now', 'woo-seerbit' ) . '</button>';
+
+		if ( ! $this->remove_cancel_order_button ) {
+			echo '  <a class="button cancel" id="seerbit-cancel-payment-button" href="' . esc_url( $order->get_cancel_order_url() ) . '">' . __( 'Cancel order &amp; restore cart', 'woo-seerbit' ) . '</a></div>';
+		}
+
+		echo '</div>';
+
+	}
 }
