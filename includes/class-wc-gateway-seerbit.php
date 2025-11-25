@@ -662,7 +662,35 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 		$order->update_meta_data( '_seerbit_tranref', $tranref );
 		$order->save();
 
-		$this->get_seerbit_encrypted_key($this->public_key, $this->secret_key);
+		$seerbit_enc_key = $this->get_seerbit_encrypted_key($this->public_key, $this->secret_key);
+
+		if(!$seerbit_enc_key){
+			wc_add_notice( __( 'Unable to process payment, please contact support', 'woo-seerbit' ), 'error' );
+			return;
+		}
+
+		$seerbit_url = 'https://seerbitapi.com/api/v2/encrypt/keys';
+
+		$headers = array(
+			'Authorization' => 'Bearer ' . $seerbit_enc_key,
+			'Content-Type'  => 'application/json'
+		);
+
+		$args = array(
+			'headers' => $headers,
+			'timeout' => 60,
+			'body'    => json_encode( $seerbit_params ),
+		);
+
+		$request = wp_remote_post( $seerbit_url, $args );
+
+		if ( ! is_wp_error( $request ) && 200 === wp_remote_retrieve_response_code( $request ) ) {
+
+			$seerbit_response = json_decode( wp_remote_retrieve_body( $request ) );
+
+			error_log(print_r($seerbit_response, true));
+
+		}
 
 	}
 
@@ -677,9 +705,8 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 		$seerbit_enc_key = get_transient( 'wc_seerbit_enc_key' );
 
 		if($seerbit_enc_key && $seerbit_enc_key !== false){
-			error_log(print_r('from transcient '.$seerbit_enc_key, true));
 
-			return;
+			return $seerbit_enc_key;
 		}
 		
 		$api_url = 'https://seerbitapi.com/api/v2/encrypt/keys';
