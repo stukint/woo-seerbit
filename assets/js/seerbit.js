@@ -58,6 +58,7 @@ jQuery( function( $ ) {
             public_key: wc_seerbit_params.public_key,
             email: wc_seerbit_params.email,
             currency: wc_seerbit_params.currency,
+            country: wc_seerbit_params.country,
             tranref: wc_seerbit_params.tranref,
             amount: amount,
             description: wc_seerbit_params.description,

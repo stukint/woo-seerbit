@@ -533,11 +533,13 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 			$the_order_id  = $order->get_id();
 			$the_order_key = $order->get_order_key();
 			$currency      = $order->get_currency();
+			$country	   = $order->get_billing_country();
 
 			if ( $the_order_id == $order_id && $the_order_key == $order_key ) {
 
 				$seerbit_params['email'] = $email;
 				$seerbit_params['currency'] = $currency;
+				$seerbit_params['country'] = $country;
 				$seerbit_params['tranref'] = $tranref;
 				$seerbit_params['amount'] = $amount;
 				$seerbit_params['description'] = $payment_descr;
@@ -630,6 +632,7 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 		$tranref        = 'Seebit_'. $order_id . '_' . time();
 		$payment_descr = 'Payment for Order Num #' . $order_id;
 		$currency      = $order->get_currency();
+		$country 	   = $order->get_billing_country();
 		$callback_url = WC()->api_request_url( 'WC_Gateway_Seerbit' );
 
 		$seerbit_params = array(
@@ -637,6 +640,7 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 			'amount' => $amount,
 			'email' => $email,
 			'currency' => $currency,
+			'country' => $country,
 			'paymentReference' => $tranref,
 			'description' => $payment_descr,
 			'fullName' => $customer_name,
@@ -662,29 +666,29 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 		$order->update_meta_data( '_seerbit_tranref', $tranref );
 		$order->save();
 
-		// $seerbit_enc_key = $this->get_seerbit_encrypted_key($this->public_key, $this->secret_key);
+		$seerbit_enc_key = $this->get_seerbit_encrypted_key($this->public_key, $this->secret_key);
 
-		// if(!$seerbit_enc_key){
-		// 	wc_add_notice( __( 'Unable to process payment, please contact support', 'woo-seerbit' ), 'error' );
-		// 	return;
-		// }
+		if(!$seerbit_enc_key){
+			wc_add_notice( __( 'Unable to process payment, please contact support', 'woo-seerbit' ), 'error' );
+			return;
+		}
 
-		// $seerbit_url = 'https://seerbitapi.com/api/v2/payments';
+		$seerbit_url = 'https://seerbitapi.com/api/v2/payments';
 
-		// $headers = array(
-		// 	'Authorization' => 'Bearer ' . $seerbit_enc_key,
-		// 	'Content-Type'  => 'application/json'
-		// );
+		$headers = array(
+			'Authorization' => 'Bearer ' . $seerbit_enc_key,
+			'Content-Type'  => 'application/json'
+		);
 
-		// $args = array(
-		// 	'headers' => $headers,
-		// 	'timeout' => 60,
-		// 	'body'    => json_encode( $seerbit_params ),
-		// );
+		$args = array(
+			'headers' => $headers,
+			'timeout' => 60,
+			'body'    => json_encode( $seerbit_params ),
+		);
 
-		// $request = wp_remote_post( $seerbit_url, $args );
+		$request = wp_remote_post( $seerbit_url, $args );
 
-		error_log(print_r($order->get_billing_country(), true));
+		error_log(print_r($request, true));
 
 		// if ( ! is_wp_error( $request ) && 200 === wp_remote_retrieve_response_code( $request ) ) {
 
