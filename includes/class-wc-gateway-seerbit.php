@@ -807,7 +807,12 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 	/**
 	 * Verify Seerbit payment.
 	 */
-	public function verify_seerbit_transaction() {}
+	public function verify_seerbit_transaction() {
+
+		error_log(print_r($_REQUEST, true));
+
+
+	}
 
 	/**
 	 * Process a refund request from the Order details screen.
