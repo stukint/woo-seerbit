@@ -809,7 +809,20 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 	 */
 	public function verify_seerbit_transaction() {
 
-		error_log(print_r($_REQUEST, true));
+		if ( isset( $_REQUEST['seerbit_tranref'] ) ) {
+			$seerbit_tranref = $_REQUEST['seerbit_tranref'];
+		}elseif(isset( $_REQUEST['reference'])){
+			$seerbit_tranref = $_REQUEST['reference'];
+		}else{
+			$seerbit_tranref = false;
+		}
+
+		if($seerbit_tranref){
+			error_log(print_r($seerbit_tranref, true));
+		}else{
+			error_log(print_r('problem with transaction reference', true));
+		}
+		
 
 
 	}
