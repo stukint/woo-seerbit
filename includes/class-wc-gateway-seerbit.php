@@ -692,12 +692,18 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 
 		$request = wp_remote_post($api_url, $args);
 
+		$seerbit_response = null;
+
 		if ( ! is_wp_error( $request ) && 200 === wp_remote_retrieve_response_code( $request ) ) {
 
-			$seerbit_enc_key = json_decode( wp_remote_retrieve_body( $request ) );
+			$seerbit_response = json_decode( wp_remote_retrieve_body( $request ) );
 
-			error_log(print_r($seerbit_enc_key->status, true));
-			error_log(print_r($seerbit_enc_key->data, true));
+		}
+
+		if($seerbit_response && $seerbit_response->data->code == '00'){
+			$seerbit_enc_key = $seerbit_response->data->EncryptedSecKey->encryptedKey;
+
+			error_log(print_r($seerbit_enc_key, true));
 
 		}
 
