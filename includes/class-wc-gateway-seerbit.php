@@ -669,7 +669,7 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 			return;
 		}
 
-		$seerbit_url = 'https://seerbitapi.com/api/v2/encrypt/keys';
+		$seerbit_url = 'https://seerbitapi.com/api/v2/payments';
 
 		$headers = array(
 			'Authorization' => 'Bearer ' . $seerbit_enc_key,
@@ -684,15 +684,13 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 
 		$request = wp_remote_post( $seerbit_url, $args );
 
-		error_log(print_r($request, true));
+		if ( ! is_wp_error( $request ) && 200 === wp_remote_retrieve_response_code( $request ) ) {
 
-		// if ( ! is_wp_error( $request ) && 200 === wp_remote_retrieve_response_code( $request ) ) {
+			$seerbit_response = json_decode( wp_remote_retrieve_body( $request ) );
 
-		// 	$seerbit_response = json_decode( wp_remote_retrieve_body( $request ) );
+			error_log(print_r($seerbit_response, true));
 
-		// 	error_log(print_r($seerbit_response, true));
-
-		// }
+		}
 
 	}
 
