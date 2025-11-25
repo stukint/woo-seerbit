@@ -32,8 +32,7 @@ jQuery( function( $ ) {
         let amount = Number( wc_seerbit_params.amount );
 
         let seerbit_callback = function(response, closeModal) {
-            console.log(response);
-            $form.append( '<input type="hidden" class="seerbit_tranref" name="seerbit_tranref" value="' + 'tranref-placeholder' + '"/>' );
+            $form.append( '<input type="hidden" class="seerbit_tranref" name="seerbit_tranref" value="' + response.payments.reference + '"/>' );
             seerbit_submit = true;
     
             $form.submit();

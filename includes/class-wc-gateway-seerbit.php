@@ -505,11 +505,11 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 			return;
 		}
 
-		//$suffix = ( defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ) ? '' : '.min';
-		$suffix = '';
+		$suffix = ( defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ) ? '' : '.min';
+		//$suffix = '';
 
-		//$version = WC_SEERBIT_VERSION;
-		$version = '10.0.4';
+		$version = WC_SEERBIT_VERSION;
+		//$version = '10.0.4';
 
 		wp_enqueue_script( 'jquery' );
 
@@ -529,8 +529,7 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 			$customer_name = $first_name . ' ' . $last_name;
 			$amount        = $order->get_total();
 			$tranref        = 'Seebit_'. $order_id . '_' . time();
-			$site_name     = get_option( 'blogname' );
-			$payment_descr = 'Payment for ' . $site_name . ' #' . $order_id;
+			$payment_descr = 'Payment for Order Num #' . $order_id;
 			$the_order_id  = $order->get_id();
 			$the_order_key = $order->get_order_key();
 			$currency      = $order->get_currency();
@@ -546,7 +545,7 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 
 			}
 
-			if($this->split_payment){
+			if($this->split_payment && $this->split_code){
 				$seerbit_params['split_code'] = $this->split_code;
 			}
 
@@ -559,6 +558,7 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 
 		}
 
+		//Create function to store retrieve payment methods from settings when needed
 		$payment_methods = array('card');
 
 		$seerbit_params['payment_methods'] = $payment_methods;
@@ -620,7 +620,99 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 	 * @return array|void
 	 */
 	public function process_redirect_payment_option( $order_id ) {
-		//ADD Redirect payment logic
+		
+		$order        = wc_get_order( $order_id );
+		$email         = $order->get_billing_email();
+		$first_name	   = $order->get_billing_first_name();
+		$last_name	   = $order->get_billing_last_name();
+		$customer_name = $first_name . ' ' . $last_name;
+		$amount        = $order->get_total();
+		$tranref        = 'Seebit_'. $order_id . '_' . time();
+		$payment_descr = 'Payment for Order Num #' . $order_id;
+		$currency      = $order->get_currency();
+		$callback_url = WC()->api_request_url( 'WC_Gateway_Seerbit' );
+
+		$seerbit_params = array(
+			'publicKey' => $this->public_key,
+			'amount' => $amount,
+			'email' => $email,
+			'currency' => $currency,
+			'paymentReference' => $tranref,
+			'description' => $payment_descr,
+			'fullName' => $customer_name,
+			'callbackUrl' => $callback_url
+		);
+
+		if($this->split_payment && $this->split_code){
+			$seerbit_params['splitCode'] = $this->split_code;
+		}
+
+		if($this->tokenize_cards){
+			$seerbit_params['tokenize'] = true;
+		}
+
+		//Create function to store retrieve payment methods from settings when needed
+		$payment_methods = array('card');
+
+		$seerbit_params['customization'] = array(
+			'confetti' => false,
+			'payment_method' => $payment_methods
+		);
+
+		$order->update_meta_data( '_seerbit_tranref', $tranref );
+		$order->save();
+
+		$this->get_seerbit_encrypted_key($this->public_key, $this->secret_key);
+
+	}
+
+	/**
+	 * Retrieve encrypted key from seerbit.
+	 *
+	 * @since 5.7
+	 * @param string $public_key $secret_key
+	 * @return array|void
+	 */
+	public function get_seerbit_encrypted_key($public_key, $secret_key){
+		$api_url = 'https://seerbitapi.com/api/v2/encrypt/keys';
+
+		$headers = array(
+			'Content-Type'  => 'application/json'
+		);
+
+		$data = array(
+			'key' => $secret_key . '.' . $public_key
+		);
+
+		$args = array(
+			'headers' => $headers,
+			'timeout' => 120,
+			'body' => json_encode($data)
+		);
+
+		$request = wp_remote_post($api_url, $args);
+
+		error_log(print_r($request, true));
+
+	}
+
+	/**
+	 * Process a token payment.
+	 *
+	 * @param $token
+	 * @param $order_id
+	 *
+	 * @return bool
+	 */
+	public function process_token_payment( $token, $order_id ) {}
+
+	/**
+	 * Show new card can only be added when placing an order notice.
+	 */
+	public function add_payment_method() {
+		wc_add_notice( __( 'You can only add a new card when placing an order.', 'woo-seerbit' ), 'error' );
+
+		return;
 	}
 
 	/**
@@ -644,5 +736,86 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 
 		echo '</div>';
 
+	}
+
+	/**
+	 * Verify Seerbit payment.
+	 */
+	public function verify_seerbit_transaction() {}
+
+	/**
+	 * Process a refund request from the Order details screen.
+	 *
+	 * @param int $order_id WC Order ID.
+	 * @param float|null $amount Refund Amount.
+	 * @param string $reason Refund Reason
+	 *
+	 * @return bool|WP_Error
+	 */
+	public function process_refund( $order_id, $amount = null, $reason = '' ) {}
+	
+	/**
+	 * Checks if WC version is less than passed in version.
+	 *
+	 * @param string $version Version to check against.
+	 *
+	 * @return bool
+	 */
+	public function is_wc_lt( $version ) {
+		//return version_compare( WC_VERSION, $version, '<' );
+	}
+
+	/**
+	 * Checks if autocomplete order is enabled for the payment method.
+	 *
+	 * @since 5.7
+	 * @param WC_Order $order Order object.
+	 * @return bool
+	 */
+	protected function is_autocomplete_order_enabled( $order ) {
+
+		$autocomplete_order = false;
+
+		$payment_method = $order->get_payment_method();
+
+		$seerbit_settings = get_option('woocommerce_' . $payment_method . '_settings');
+
+		if ( isset( $seerbit_settings['autocomplete_order'] ) && 'yes' === $seerbit_settings['autocomplete_order'] ) {
+			$autocomplete_order = true;
+		}
+
+		return $autocomplete_order;
+
+	}
+
+	/**
+	 * Retrieve a transaction from Seerbit.
+	 *
+	 * @since 5.7.5
+	 * @param $seerbit_tranref
+	 * @return false|mixed
+	 */
+	private function get_seerbit_transaction( $seerbit_tranref ) {}
+
+	/**
+	 * Get Seerbit payment icon URL.
+	 */
+	public function get_logo_url() {
+		
+		$url = WC_HTTPS::force_https_url( plugins_url( 'assets/images/seerbit-logo.png', WC_SEERBIT_MAIN_FILE ) );
+
+		return apply_filters( 'wc_seerbit_gateway_icon_url', $url, $this->id );
+
+	}
+
+	/**
+	 * Check if an order contains a subscription.
+	 *
+	 * @param int $order_id WC Order ID.
+	 *
+	 * @return bool
+	 */
+	public function order_contains_subscription( $order_id ) {
+		return function_exists( 'wcs_order_contains_subscription' ) && ( wcs_order_contains_subscription( $order_id ) || wcs_order_contains_renewal( $order_id ) );
 	}
 }
