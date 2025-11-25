@@ -677,7 +677,7 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 		$seerbit_enc_key = get_transient( 'wc_seerbit_enc_key' );
 
 		if($seerbit_enc_key && $seerbit_enc_key !== false){
-			error_log(print_r($seerbit_enc_key, true));
+			error_log(print_r('from transcient '.$seerbit_enc_key, true));
 
 			return;
 		}
