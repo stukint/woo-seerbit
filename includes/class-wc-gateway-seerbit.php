@@ -696,7 +696,8 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 
 			$seerbit_enc_key = json_decode( wp_remote_retrieve_body( $request ) );
 
-			error_log(print_r($seerbit_enc_key, true));
+			error_log(print_r($seerbit_enc_key->status, true));
+			error_log(print_r($seerbit_enc_key->data, true));
 
 		}
 
