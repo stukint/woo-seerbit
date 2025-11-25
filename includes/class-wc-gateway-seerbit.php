@@ -674,6 +674,14 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 	 * @return array|void
 	 */
 	public function get_seerbit_encrypted_key($public_key, $secret_key){
+		$seerbit_enc_key = get_transient( 'wc_seerbit_enc_key' );
+
+		if($seerbit_enc_key && $seerbit_enc_key !== false){
+			error_log(print_r($seerbit_enc_key, true));
+
+			return;
+		}
+		
 		$api_url = 'https://seerbitapi.com/api/v2/encrypt/keys';
 
 		$headers = array(
@@ -703,11 +711,13 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 		if($seerbit_response && $seerbit_response->data->code == '00'){
 			$seerbit_enc_key = $seerbit_response->data->EncryptedSecKey->encryptedKey;
 
-			$expiration = time();
+			$expiration = time() + 86400;
 
-			//set_transient( 'wc_seerbit_enc_key', $seerbit_enc_key, $expiration );
-			error_log(print_r($expiration, true));
+			set_transient( 'wc_seerbit_enc_key', $seerbit_enc_key, $expiration );
 
+			return $seerbit_enc_key;
+		}else{
+			return false;
 		}
 
 		
