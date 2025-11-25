@@ -684,13 +684,15 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 
 		$request = wp_remote_post( $seerbit_url, $args );
 
-		if ( ! is_wp_error( $request ) && 200 === wp_remote_retrieve_response_code( $request ) ) {
+		error_log(print_r($request, true));
 
-			$seerbit_response = json_decode( wp_remote_retrieve_body( $request ) );
+		// if ( ! is_wp_error( $request ) && 200 === wp_remote_retrieve_response_code( $request ) ) {
 
-			error_log(print_r($seerbit_response, true));
+		// 	$seerbit_response = json_decode( wp_remote_retrieve_body( $request ) );
 
-		}
+		// 	error_log(print_r($seerbit_response, true));
+
+		// }
 
 	}
 
