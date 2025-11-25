@@ -703,7 +703,10 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 		if($seerbit_response && $seerbit_response->data->code == '00'){
 			$seerbit_enc_key = $seerbit_response->data->EncryptedSecKey->encryptedKey;
 
-			error_log(print_r($seerbit_enc_key, true));
+			$expiration = time();
+
+			//set_transient( 'wc_seerbit_enc_key', $seerbit_enc_key, $expiration );
+			error_log(print_r($expiration, true));
 
 		}
 
