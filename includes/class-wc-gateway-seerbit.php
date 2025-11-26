@@ -292,7 +292,6 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 	 * Admin Panel Options.
 	 */
 	public function admin_options() {
-        error_log(print_r("This Fires", true));
         ?>
         <h2>
             <?php 
@@ -528,7 +527,7 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 			$last_name	   = $order->get_billing_last_name();
 			$customer_name = $first_name . ' ' . $last_name;
 			$amount        = $order->get_total();
-			$tranref        = 'Seebit_'. $order_id . '_' . time();
+			$tranref        = 'Seerbit_'. $order_id . '_' . time();
 			$payment_descr = 'Payment for Order Num #' . $order_id;
 			$the_order_id  = $order->get_id();
 			$the_order_key = $order->get_order_key();
@@ -629,7 +628,7 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 		$last_name	   = $order->get_billing_last_name();
 		$customer_name = $first_name . ' ' . $last_name;
 		$amount        = $order->get_total();
-		$tranref        = 'Seebit_'. $order_id . '_' . time();
+		$tranref        = 'Seerbit_'. $order_id . '_' . time();
 		$payment_descr = 'Payment for Order Num #' . $order_id;
 		$currency      = $order->get_currency();
 		$country 	   = $order->get_billing_country();
@@ -817,10 +816,10 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 			$seerbit_tranref = false;
 		}
 
+		@ob_clean();
+
 		if($seerbit_tranref){
-			error_log(print_r($seerbit_tranref, true));
-		}else{
-			error_log(print_r('problem with transaction reference', true));
+			$seerbit_response = $this->get_seerbit_transaction($seerbit_tranref);
 		}
 		
 
@@ -879,7 +878,31 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 	 * @param $seerbit_tranref
 	 * @return false|mixed
 	 */
-	private function get_seerbit_transaction( $seerbit_tranref ) {}
+	private function get_seerbit_transaction( $seerbit_tranref ) {
+
+		$seerbit_url = 'https://seerbitapi.com/api/v3/payments/query/' . $seerbit_tranref;
+
+		$seerbit_enc_key = $this->get_seerbit_encrypted_key($this->public_key, $this->secret_key);
+
+		if(!$seerbit_enc_key){
+			return false;
+		}
+
+		$headers = array(
+			'Authorization' => 'Bearer ' . $seerbit_enc_key,
+		);
+
+		$args = array(
+			'headers' => $headers,
+			'timeout' => 120,
+		);
+
+		$request = wp_remote_get( $seerbit_url, $args );
+
+		error_log(print_r($request, true));
+
+
+	}
 
 	/**
 	 * Get Seerbit payment icon URL.
