@@ -820,6 +820,8 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 
 		if($seerbit_tranref){
 			$seerbit_response = $this->get_seerbit_transaction($seerbit_tranref);
+			error_log(print_r($seerbit_response->body, true));
+
 		}
 		
 
@@ -899,8 +901,11 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 
 		$request = wp_remote_get( $seerbit_url, $args );
 
-		error_log(print_r($request, true));
+		if ( ! is_wp_error( $request ) && 200 === wp_remote_retrieve_response_code( $request ) ) {
+			return json_decode( wp_remote_retrieve_body( $request ) );
+		}
 
+		return false;
 
 	}
 
