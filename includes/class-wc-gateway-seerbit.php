@@ -820,7 +820,7 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 
 		if($seerbit_tranref){
 			$seerbit_response = $this->get_seerbit_transaction($seerbit_tranref);
-			error_log(print_r($seerbit_response->body, true));
+			error_log(print_r($seerbit_response, true));
 
 		}
 		
