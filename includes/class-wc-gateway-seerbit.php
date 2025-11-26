@@ -599,7 +599,26 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 	 * @return array|void
 	 */
 	public function process_payment( $order_id ) {
-		//ADD Token payment later
+		$payment_token = 'wc-' . trim( $this->id ) . '-payment-token';
+
+		// phpcs:ignore WordPress.Security.NonceVerification
+		if ( isset( $_POST[ $payment_token ] ) && 'new' !== wc_clean( $_POST[ $payment_token ] ) ) {
+
+			// phpcs:ignore WordPress.Security.NonceVerification
+			$token_id = wc_clean( $_POST[ $payment_token ] );
+			$token    = \WC_Payment_Tokens::get( $token_id );
+
+			if ( $token->get_user_id() !== get_current_user_id() ) {
+
+				wc_add_notice( 'Invalid token ID', 'error' );
+
+				return;
+			}
+
+			$this->process_token_payment( $token->get_token(), $order_id );
+			//Continue with token payment later.
+
+		}
 
 		$order = wc_get_order( $order_id );
 
@@ -769,7 +788,70 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 	 *
 	 * @return bool
 	 */
-	public function process_token_payment( $token, $order_id ) {}
+	public function process_token_payment( $token, $order_id ) {
+		if ( $token && $order_id ) {
+			$order = wc_get_order( $order_id );
+
+			$order_amount = $order->get_total();
+			$tranref = 'Seerbit_'. $order_id . '_r_' . time();
+			$first_name	   = $order->get_billing_first_name();
+			$last_name	   = $order->get_billing_last_name();
+			$customer_name = $first_name . ' ' . $last_name;
+			$payment_descr = 'Payment for Order Num #' . $order_id;
+			$currency      = $order->get_currency();
+			$country 	   = $order->get_billing_country();
+
+			$order->update_meta_data( '_seerbit_tranref', $tranref );
+			$order->save();
+
+			$seerbit_enc_key = $this->get_seerbit_encrypted_key($this->public_key, $this->secret_key);
+
+			$seerbit_url = 'https://seerbitapi.com/api/v2/payments/charge-token';
+
+			$headers = array(
+				'Content-Type'  => 'application/json',
+				'Authorization' => 'Bearer ' . $seerbit_enc_key,
+			);
+
+			if ( strpos( $token, '###' ) !== false ) {
+				$payment_token  = explode( '###', $token );
+				$auth_code      = $payment_token[0];
+				$customer_email = $payment_token[1];
+			} else {
+				$auth_code      = $token;
+				$customer_email = $order->get_billing_email();
+			}
+
+			$seerbit_params = array(
+				'publicKey' => $this->public_key,
+				'amount' => $order_amount,
+				'email' => $customer_email,
+				'currency' => $currency,
+				'country' => $country,
+				'paymentReference' => $tranref,
+				'description' => $payment_descr,
+				'fullName' => $customer_name,
+				'authorizationCode' => $auth_code
+			);
+
+			$args = array(
+				'headers' => $headers,
+				'timeout' => 120,
+				'body' => json_encode($seerbit_params)
+			);
+
+			$request = wp_remote_post($seerbit_url, $args);
+
+			error_log(print_r($request, true));
+
+
+			//$response_code = wp_remote_retrieve_response_code( $request );
+
+			// if ( ! is_wp_error( $request ) && in_array( $response_code, array( 200, 400 ), true ) ) {
+			// 	$seerbit_response = json_decode( wp_remote_retrieve_body( $request ) );
+			// }
+		}
+	}
 
 	/**
 	 * Show new card can only be added when placing an order notice.
@@ -804,14 +886,41 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 	}
 
 	/**
+	 * Display message on thank you page.
+	 */
+	public function thankyou_page( $order_id ){
+
+		$order = wc_get_order( $order_id );
+
+		if($order->get_status() == 'failed'){
+			if ($this->order_failed_message){
+				$ptext = wpautop(wptexturize($this->order_failed_message));
+				$ptext = str_replace('<p>', '<p style="font-size: 1rem; font-weight: 500; color: red;">', $ptext);
+				echo wp_kses_post($ptext);
+				return;
+			}
+			return;
+		}
+
+		if($order->get_status() == 'completed' || $order->get_status() == 'processing'){
+			if ($this->order_complete_message){
+				echo wp_kses_post(wpautop(wptexturize($this->order_complete_message)));
+				return;
+			}
+			return;
+		}
+
+	}
+
+	/**
 	 * Verify Seerbit payment.
 	 */
 	public function verify_seerbit_transaction() {
 
 		if ( isset( $_REQUEST['seerbit_tranref'] ) ) {
-			$seerbit_tranref = $_REQUEST['seerbit_tranref'];
+			$seerbit_tranref = sanitize_text_field($_REQUEST['seerbit_tranref']);
 		}elseif(isset( $_REQUEST['reference'])){
-			$seerbit_tranref = $_REQUEST['reference'];
+			$seerbit_tranref = sanitize_text_field($_REQUEST['reference']);
 		}else{
 			$seerbit_tranref = false;
 		}
@@ -820,14 +929,210 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 
 		if($seerbit_tranref){
 			$seerbit_response = $this->get_seerbit_transaction($seerbit_tranref);
-			error_log(print_r($seerbit_response, true));
 
+			if($seerbit_response !== false){
+				
+				if(strtolower($seerbit_response->status) == 'success'){
+					$order_details = explode('_', $seerbit_response->data->payments->paymentReference);
+					$order_id = (int) $order_details[1];
+					$order = wc_get_order( $order_id );
+
+					if ( in_array( $order->get_status(), array( 'processing', 'completed', 'on-hold' ) ) ) {
+
+						wp_redirect( $this->get_return_url( $order ) );
+
+						exit;
+
+					}
+
+					$order_total      = $order->get_total();
+					$order_currency   = $order->get_currency();
+					$currency_symbol  = get_woocommerce_currency_symbol( $order_currency );
+					$amount_paid 	  = $seerbit_response->data->payments->amount;
+					$seerbit_ref 	  = $seerbit_response->data->payments->paymentReference;
+					$payment_currency = strtoupper( $seerbit_response->data->payments->currency);
+					$gateway_symbol   = get_woocommerce_currency_symbol( $payment_currency );
+
+					//Check if amount paid is equal to order amount.
+					if ( $amount_paid < absint($order_total)){
+
+						$order->update_status( 'on-hold', '' );
+
+						$order->add_meta_data( '_transaction_id', $seerbit_ref, true );
+
+						$notice      = sprintf( __( 'Thank you for your payment.%1$sYour payment transaction was successful, but the amount paid is not the same as the total order amount.%2$sYour order is currently on hold.%3$sKindly contact us for more information regarding your order and payment status.', 'woo-seerbit' ), '<br />', '<br />', '<br />' );
+						$notice_type = 'notice';
+
+						// Add Customer Order Note
+						$order->add_order_note( $notice, 1 );
+
+						// Add Admin Order Note
+						$admin_order_note = sprintf( __( '<strong>Look into this order</strong>%1$sThis order is currently on hold.%2$sReason: Amount paid is less than the total order amount.%3$sAmount Paid was <strong>%4$s (%5$s)</strong> while the total order amount is <strong>%6$s (%7$s)</strong>%8$s<strong>Seerbit Transaction Reference:</strong> %9$s', 'woo-seerbit' ), '<br />', '<br />', '<br />', $currency_symbol, $amount_paid, $currency_symbol, $order_total, '<br />', $seerbit_ref );
+						$order->add_order_note( $admin_order_note );
+
+						function_exists( 'wc_reduce_stock_levels' ) ? wc_reduce_stock_levels( $order_id ) : $order->reduce_order_stock();
+
+						wc_add_notice( $notice, $notice_type );
+
+					}else{
+
+						if ( $payment_currency !== $order_currency ) {
+
+							$order->update_status( 'on-hold', '' );
+
+							$order->update_meta_data( '_transaction_id', $seerbit_ref );
+
+							$notice      = sprintf( __( 'Thank you for your payment.%1$sYour payment was successful, but the payment currency is different from the order currency.%2$sYour order is currently on-hold.%3$sKindly contact us for more information regarding your order and payment status.', 'woo-seerbit' ), '<br />', '<br />', '<br />' );
+							$notice_type = 'notice';
+
+							// Add Customer Order Note
+							$order->add_order_note( $notice, 1 );
+
+							// Add Admin Order Note
+							$admin_order_note = sprintf( __( '<strong>Look into this order</strong>%1$sThis order is currently on hold.%2$sReason: Order currency is different from the payment currency.%3$sOrder Currency is <strong>%4$s (%5$s)</strong> while the payment currency is <strong>%6$s (%7$s)</strong>%8$s<strong>Seerbit Transaction Reference:</strong> %9$s', 'woo-seerbit' ), '<br />', '<br />', '<br />', $order_currency, $currency_symbol, $payment_currency, $gateway_symbol, '<br />', $seerbit_ref );
+							$order->add_order_note( $admin_order_note );
+
+							function_exists( 'wc_reduce_stock_levels' ) ? wc_reduce_stock_levels( $order_id ) : $order->reduce_order_stock();
+
+							wc_add_notice( $notice, $notice_type );
+
+						}else{
+
+							$order->payment_complete( $seerbit_ref );
+							$order->add_order_note( sprintf( __( 'Payment via Seerbit successful (Transaction Reference: %s)', 'woo-seerbit' ), $seerbit_ref ) );
+
+							if ( $this->is_autocomplete_order_enabled( $order ) ) {
+								$order->update_status( 'completed' );
+							}
+
+						}
+
+					}
+
+					$order->save();
+
+					$this->save_card_details( $seerbit_response, $order->get_user_id(), $order_id );
+
+					WC()->cart->empty_cart();
+
+				}else{
+
+					$order_details = explode( '_', $seerbit_tranref );
+
+					$order_id = (int) $order_details[1];
+
+					$order = wc_get_order( $order_id );
+
+					$order->update_status( 'failed', __( 'Seerbit payment was declined.', 'woo-seerbit' ) );
+
+				}
+
+			}
+
+			wp_redirect( $this->get_return_url( $order ) );
+
+			exit;
+			
 		}
 		
+		wp_redirect( wc_get_page_permalink( 'cart' ) );
 
+		exit;
 
 	}
 
+	/**
+	 * Save Customer Card Details.
+	 *
+	 * @param $seerbit_response
+	 * @param $user_id
+	 * @param $order_id
+	 */
+	public function save_card_details( $seerbit_response, $user_id, $order_id ) {
+		
+		$this->save_subscription_payment_token( $order_id, $seerbit_response );
+
+		$order = wc_get_order( $order_id );
+
+		$save_card = $order->get_meta( '_wc_seerbit_save_card' );
+
+		if ( $user_id && $this->saved_cards && $save_card && $seerbit_response->data->payments->authorizationCode && 'card' == strtolower($seerbit_response->data->payments->paymentType) ) {
+
+			$gateway_id = $order->get_payment_method();
+
+			$last4          = $seerbit_response->data->payments->lastFourDigits;
+			$exp_year       = $seerbit_response->data->payments->expiryYear;
+			$brand          = $seerbit_response->data->payments->cardType;
+			$exp_month      = $seerbit_response->data->payments->expiryMonth;
+			$auth_code      = $seerbit_response->data->payments->authorizationCode;
+			$customer_email = $seerbit_response->data->customers->customerEmail;
+
+			$payment_token = "$auth_code###$customer_email";
+
+			$token = new WC_Payment_Token_CC();
+			$token->set_token( $payment_token );
+			$token->set_gateway_id( $gateway_id );
+			$token->set_card_type( strtolower( $brand ) );
+			$token->set_last4( $last4 );
+			$token->set_expiry_month( $exp_month );
+			$token->set_expiry_year( $exp_year );
+			$token->set_user_id( $user_id );
+			$token->save();
+
+			$order->delete_meta_data( '_wc_seerbit_save_card' );
+			$order->save();
+
+		}
+		
+	}
+
+	/**
+	 * Save payment token to the order for automatic renewal for further subscription payment.
+	 *
+	 * @param $order_id
+	 * @param $seerbit_response
+	 */
+	public function save_subscription_payment_token( $order_id, $seerbit_response ) {
+
+		if ( ! function_exists( 'wcs_order_contains_subscription' ) ) {
+			return;
+		}
+
+		if ( $this->order_contains_subscription( $order_id ) && $seerbit_response->data->payments->authorizationCode && 'card' == strtolower($seerbit_response->data->payments->paymentType) ){
+
+			$auth_code = $seerbit_response->data->payments->authorizationCode;
+			$customer_email = $seerbit_response->data->customers->customerEmail;
+
+			$payment_token = "$auth_code###$customer_email";
+
+			// Also store it on the subscriptions being purchased or paid for in the order
+			if ( function_exists( 'wcs_order_contains_subscription' ) && wcs_order_contains_subscription( $order_id ) ) {
+
+				$subscriptions = wcs_get_subscriptions_for_order( $order_id );
+
+			} elseif ( function_exists( 'wcs_order_contains_renewal' ) && wcs_order_contains_renewal( $order_id ) ) {
+
+				$subscriptions = wcs_get_subscriptions_for_renewal_order( $order_id );
+
+			} else {
+
+				$subscriptions = array();
+
+			}
+
+			if ( empty( $subscriptions ) ) {
+				return;
+			}
+
+			foreach ( $subscriptions as $subscription ) {
+				$subscription->update_meta_data( '_seerbit_token', $payment_token );
+				$subscription->save();
+			}
+
+		}
+
+	}
+	
 	/**
 	 * Process a refund request from the Order details screen.
 	 *
