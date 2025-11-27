@@ -1208,7 +1208,7 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 
 		$event = json_decode( $json );
 
-		error_log(print_r($event, true));
+		error_log(print_r($event->notificationItems[0]->notificationRequestItem, true));
 
 
 	}
