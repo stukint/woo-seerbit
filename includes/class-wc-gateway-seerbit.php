@@ -1232,6 +1232,8 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 			$token->set_expiry_month( $exp_month );
 			$token->set_expiry_year( $exp_year );
 			$token->set_user_id( $user_id );
+			error_log(print_r($token, true));
+
 			$token->save();
 
 			$order->delete_meta_data( '_wc_seerbit_save_card' );
