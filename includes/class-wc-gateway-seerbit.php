@@ -1199,16 +1199,17 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 
 		$json = file_get_contents( 'php://input' );
 
-		$seerbit_enc_key = $this->get_seerbit_encrypted_key($this->public_key, $this->secret_key);
-
-		error_log(print_r($_SERVER['HTTP_X_SEERBIT_SIGNATURE'], true));
-
-		error_log(print_r( hash_hmac( 'sha512', $json, $this->secret_key.'.'.$this->public_key ), true));
+		//$seerbit_enc_key = $this->get_seerbit_encrypted_key($this->public_key, $this->secret_key);
 
 		// validate event do all at once to avoid timing attack.
-		// if ( $_SERVER['HTTP_X_PAYSTACK_SIGNATURE'] !== hash_hmac( 'sha512', $json, $this->secret_key ) ) {
+		// if ( $_SERVER['HTTP_X_SEERBIT_SIGNATURE'] !== hash_hmac( 'sha512', $json, $this->secret_key ) ) {
 		// 	exit;
 		// }
+
+		$event = json_decode( $json );
+
+		error_log(print_r($event, true));
+
 
 	}
 
