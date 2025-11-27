@@ -37,7 +37,7 @@ jQuery( function( $ ) {
         }
 
         if(wc_seerbit_params.tokenize){
-            tokenize = wc_seerbit_params.tokenize;
+            tokenize = true;
         }
 
         if(wc_seerbit_params.payment_methods){
