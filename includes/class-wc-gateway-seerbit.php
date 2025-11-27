@@ -1072,12 +1072,12 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 			$seerbit_tranref = false;
 		}
 
-		error_log(print_r($seerbit_tranref, true));
-
 		@ob_clean();
 
 		if($seerbit_tranref){
 			$seerbit_response = $this->get_seerbit_transaction($seerbit_tranref);
+
+			error_log(print_r($seerbit_response, true));
 
 			if($seerbit_response !== false){
 				
