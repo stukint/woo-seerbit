@@ -26,10 +26,23 @@ jQuery( function( $ ) {
 			seerbit_tranref = $form.find( 'input.seerbit_tranref' ),
 			split_code = '';
             tokenize = false;
+            payment_methods = [];
 
         seerbit_tranref.val('');
         
         let amount = Number( wc_seerbit_params.amount );
+
+        if(wc_seerbit_params.split_code){
+            split_code = wc_seerbit_params.split_code;
+        }
+
+        if(wc_seerbit_params.tokenize){
+            tokenize = wc_seerbit_params.tokenize;
+        }
+
+        if(wc_seerbit_params.payment_methods){
+            payment_methods = wc_seerbit_params.payment_methods;
+        }
 
         let seerbit_callback = function(response, closeModal) {
             $form.append( '<input type="hidden" class="seerbit_tranref" name="seerbit_tranref" value="' + response.payments.reference + '"/>' );
@@ -63,23 +76,14 @@ jQuery( function( $ ) {
             amount: amount,
             description: wc_seerbit_params.description,
             full_name: wc_seerbit_params.full_name,
+            tokenize: tokenize,
+            splitCode: split_code,
             customization: {
-                confetti: false
+                confetti: false,
+                payment_method: payment_methods
             }
         }
-
-        if(wc_seerbit_params.split_code){
-            paymentData['splitCode'] = wc_seerbit_params.split_code;
-        }
-
-        if(wc_seerbit_params.tokenize){
-            paymentData['tokenize'] = wc_seerbit_params.tokenize;
-        }
-
-        if(wc_seerbit_params.payment_methods){
-            paymentData.customization['payment_method'] = wc_seerbit_params.payment_methods;
-        }
-
+        console.log(paymentData);
         SeerbitPay (paymentData, seerbit_callback, seerbit_close_callback);
     }
 
