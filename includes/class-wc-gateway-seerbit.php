@@ -1189,6 +1189,14 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 	}
 
 	/**
+	 * Process Webhook.
+	 */
+	public function process_webhooks() {
+		error_log(print_r($_SERVER, true));
+
+	}
+
+	/**
 	 * Save Customer Card Details.
 	 *
 	 * @param $seerbit_response
@@ -1329,7 +1337,9 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 	 *
 	 * @return bool|WP_Error
 	 */
-	public function process_refund( $order_id, $amount = null, $reason = '' ) {}
+	public function process_refund( $order_id, $amount = null, $reason = '' ) {
+
+	}
 	
 	/**
 	 * Checks if WC version is less than passed in version.
