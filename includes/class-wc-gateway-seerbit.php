@@ -532,7 +532,7 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 			$the_order_id  = $order->get_id();
 			$the_order_key = $order->get_order_key();
 			$currency      = $order->get_currency();
-			$country	   = $order->get_billing_country();
+			$country	   = 'NG';
 
 			if ( $the_order_id == $order_id && $the_order_key == $order_key ) {
 
@@ -670,7 +670,7 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 		$tranref        = 'Seerbit_'. $order_id . '_' . time();
 		$payment_descr = 'Payment for Order Num #' . $order_id;
 		$currency      = $order->get_currency();
-		$country 	   = $order->get_billing_country();
+		$country 	   = 'NG';
 		$callback_url = WC()->api_request_url( 'WC_Gateway_Seerbit' );
 
 		$seerbit_params = array(
@@ -748,7 +748,7 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 	 *
 	 * @since 5.7
 	 * @param string $public_key $secret_key
-	 * @return array|void
+	 * @return string|void
 	 */
 	public function get_seerbit_encrypted_key($public_key, $secret_key){
 		$seerbit_enc_key = get_transient( 'wc_seerbit_enc_key' );
@@ -1192,7 +1192,23 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 	 * Process Webhook.
 	 */
 	public function process_webhooks() {
-		error_log(print_r($_SERVER, true));
+		
+		if ( ! array_key_exists( 'HTTP_X_SEERBIT_SIGNATURE', $_SERVER ) || ( strtoupper( $_SERVER['REQUEST_METHOD'] ) !== 'POST' ) ) {
+			exit;
+		}
+
+		$json = file_get_contents( 'php://input' );
+
+		$seerbit_enc_key = $this->get_seerbit_encrypted_key($this->public_key, $this->secret_key);
+
+		error_log(print_r($_SERVER['HTTP_X_PAYSTACK_SIGNATURE'], true));
+
+		error_log(print_r( hash_hmac( 'sha512', $json, $seerbit_enc_key ), true));
+
+		// validate event do all at once to avoid timing attack.
+		// if ( $_SERVER['HTTP_X_PAYSTACK_SIGNATURE'] !== hash_hmac( 'sha512', $json, $this->secret_key ) ) {
+		// 	exit;
+		// }
 
 	}
 
@@ -1327,19 +1343,6 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 				$subscription->save();
 			}
 		}
-
-	}
-	
-	/**
-	 * Process a refund request from the Order details screen.
-	 *
-	 * @param int $order_id WC Order ID.
-	 * @param float|null $amount Refund Amount.
-	 * @param string $reason Refund Reason
-	 *
-	 * @return bool|WP_Error
-	 */
-	public function process_refund( $order_id, $amount = null, $reason = '' ) {
 
 	}
 	

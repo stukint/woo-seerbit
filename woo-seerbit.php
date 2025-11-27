@@ -3,7 +3,7 @@
  * Plugin Name: Seerbit WooCommerce Payment Gateway
  * Plugin URI: https://www.seerbit.com
  * Description: WooCommerce payment gateway for Seerbit
- * Version: 1.0.0-2
+ * Version: 1.0.0-3
  * Author: Netsave Technologies
  * Author URI: https://www.netsavetech.com.ng
  * License: GPL-2.0+
@@ -26,7 +26,7 @@
  define( 'WC_SEERBIT_MAIN_FILE', __FILE__ );
  define( 'WC_SEERBIT_URL', untrailingslashit( plugins_url( '/', __FILE__ ) ) );
 
- define( 'WC_SEERBIT_VERSION', '1.0.0-2' );
+ define( 'WC_SEERBIT_VERSION', '1.0.0-3' );
 
  /**
  * Initialize Seerbit WooCommerce payment gateway.

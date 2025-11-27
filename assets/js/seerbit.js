@@ -83,7 +83,7 @@ jQuery( function( $ ) {
                 payment_method: payment_methods
             }
         }
-        console.log(paymentData);
+        
         SeerbitPay (paymentData, seerbit_callback, seerbit_close_callback);
     }
 
