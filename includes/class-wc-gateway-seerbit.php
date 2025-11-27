@@ -1079,7 +1079,7 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 
 			if($seerbit_response !== false){
 				
-				if(strtolower($seerbit_response->status) == 'success'){
+				if(strtolower($seerbit_response->data->message) == 'successful' && $seerbit_response->data->code == '00'){
 					$order_details = explode('_', $seerbit_response->data->payments->paymentReference);
 					$order_id = (int) $order_details[1];
 					$order = wc_get_order( $order_id );
