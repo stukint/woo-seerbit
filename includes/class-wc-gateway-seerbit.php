@@ -615,12 +615,32 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 				return;
 			}
 
-			$this->process_token_payment( $token->get_token(), $order_id );
-			//Continue with token payment later.
+			$token_payment_status = $this->process_token_payment( $token->get_token(), $order_id );
+			
+			if ( ! $token_payment_status ) {
+				return;
+			}
+
+			$order = wc_get_order( $order_id );
+
+			return array(
+				'result'   => 'success',
+				'redirect' => $this->get_return_url( $order ),
+			);
 
 		}
 
 		$order = wc_get_order( $order_id );
+
+		$new_payment_method = 'wc-' . trim( $this->id ) . '-new-payment-method';
+
+		// phpcs:ignore WordPress.Security.NonceVerification
+		if ( isset( $_POST[ $new_payment_method ] ) && ( true === (bool) $_POST[ $new_payment_method ] && $this->saved_cards ) && is_user_logged_in() ) {
+
+			$order->update_meta_data( '_wc_seerbit_save_card', true );
+
+			$order->save();
+		}
 
 		if ( 'redirect' === $this->payment_page ) {
 			return $this->process_redirect_payment_option( $order_id );
@@ -842,14 +862,141 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 
 			$request = wp_remote_post($seerbit_url, $args);
 
-			error_log(print_r($request, true));
+			$response_code = wp_remote_retrieve_response_code( $request );
 
+			if ( ! is_wp_error( $request ) && $response_code ===200 ) {
+				$seerbit_response = json_decode( wp_remote_retrieve_body( $request ) );
 
-			//$response_code = wp_remote_retrieve_response_code( $request );
+				if(strtolower($seerbit_response->data->message) == 'successful'){
 
-			// if ( ! is_wp_error( $request ) && in_array( $response_code, array( 200, 400 ), true ) ) {
-			// 	$seerbit_response = json_decode( wp_remote_retrieve_body( $request ) );
-			// }
+					$seerbit_transaction = $this->get_seerbit_transaction($seerbit_response->data->payments->paymentReference);
+					
+					if($seerbit_transaction !== false){
+						
+						$order = wc_get_order( $order_id );
+
+						if ( in_array( $order->get_status(), array( 'processing', 'completed', 'on-hold' ) ) ) {
+
+							wp_redirect( $this->get_return_url( $order ) );
+
+							exit;
+
+						}
+
+						$order_total      = $order->get_total();
+						$order_currency   = $order->get_currency();
+						$currency_symbol  = get_woocommerce_currency_symbol( $order_currency );
+						$amount_paid 	  = $seerbit_transaction->data->payments->amount;
+						$seerbit_ref 	  = $seerbit_transaction->data->payments->paymentReference;
+						$payment_currency = strtoupper( $seerbit_transaction->data->payments->currency);
+						$gateway_symbol   = get_woocommerce_currency_symbol( $payment_currency );
+
+						//Check if amount paid is equal to order amount.
+						if ( $amount_paid < absint($order_total)){
+
+							$order->update_status( 'on-hold', '' );
+
+							$order->add_meta_data( '_transaction_id', $seerbit_ref, true );
+
+							$notice      = sprintf( __( 'Thank you for your payment.%1$sYour payment transaction was successful, but the amount paid is not the same as the total order amount.%2$sYour order is currently on hold.%3$sKindly contact us for more information regarding your order and payment status.', 'woo-seerbit' ), '<br />', '<br />', '<br />' );
+							$notice_type = 'notice';
+
+							// Add Customer Order Note
+							$order->add_order_note( $notice, 1 );
+
+							// Add Admin Order Note
+							$admin_order_note = sprintf( __( '<strong>Look into this order</strong>%1$sThis order is currently on hold.%2$sReason: Amount paid is less than the total order amount.%3$sAmount Paid was <strong>%4$s (%5$s)</strong> while the total order amount is <strong>%6$s (%7$s)</strong>%8$s<strong>Seerbit Transaction Reference:</strong> %9$s', 'woo-seerbit' ), '<br />', '<br />', '<br />', $currency_symbol, $amount_paid, $currency_symbol, $order_total, '<br />', $seerbit_ref );
+							$order->add_order_note( $admin_order_note );
+
+							function_exists( 'wc_reduce_stock_levels' ) ? wc_reduce_stock_levels( $order_id ) : $order->reduce_order_stock();
+
+							wc_add_notice( $notice, $notice_type );
+
+						}else{
+
+							if ( $payment_currency !== $order_currency ) {
+
+								$order->update_status( 'on-hold', '' );
+
+								$order->update_meta_data( '_transaction_id', $seerbit_ref );
+
+								$notice      = sprintf( __( 'Thank you for your payment.%1$sYour payment was successful, but the payment currency is different from the order currency.%2$sYour order is currently on-hold.%3$sKindly contact us for more information regarding your order and payment status.', 'woo-seerbit' ), '<br />', '<br />', '<br />' );
+								$notice_type = 'notice';
+
+								// Add Customer Order Note
+								$order->add_order_note( $notice, 1 );
+
+								// Add Admin Order Note
+								$admin_order_note = sprintf( __( '<strong>Look into this order</strong>%1$sThis order is currently on hold.%2$sReason: Order currency is different from the payment currency.%3$sOrder Currency is <strong>%4$s (%5$s)</strong> while the payment currency is <strong>%6$s (%7$s)</strong>%8$s<strong>Seerbit Transaction Reference:</strong> %9$s', 'woo-seerbit' ), '<br />', '<br />', '<br />', $order_currency, $currency_symbol, $payment_currency, $gateway_symbol, '<br />', $seerbit_ref );
+								$order->add_order_note( $admin_order_note );
+
+								function_exists( 'wc_reduce_stock_levels' ) ? wc_reduce_stock_levels( $order_id ) : $order->reduce_order_stock();
+
+								wc_add_notice( $notice, $notice_type );
+
+							}else{
+
+								$order->payment_complete( $seerbit_ref );
+								$order->add_order_note( sprintf( __( 'Payment via Seerbit successful (Transaction Reference: %s)', 'woo-seerbit' ), $seerbit_ref ) );
+
+								if ( $this->is_autocomplete_order_enabled( $order ) ) {
+									$order->update_status( 'completed' );
+								}
+
+							}
+
+						}
+
+						$order->save();
+
+						$this->save_subscription_renewal_payment_token($order_id, $token);
+
+						WC()->cart->empty_cart();
+
+						return true;
+
+					}else{
+
+						wc_add_notice( __( 'Payment Failed.', 'woo-seerbit' ), 'error' );
+
+						return false;
+
+					}
+					
+
+				}else{
+
+					$order_notice  = __( 'Payment was declined by Seerbit.', 'woo-seerbit' );
+					$failed_notice = __( 'Payment failed using the saved card. Kindly use another payment option.', 'woo-seerbit' );
+
+					if ( ! empty( $seerbit_response->data->message ) ) {
+
+						$order_notice  = sprintf( __( 'Payment was declined by Seerbit. Reason: %s.', 'woo-seerbit' ), $seerbit_response->data->message );
+						$failed_notice = sprintf( __( 'Payment failed using the saved card. Reason: %s. Kindly use another payment option.', 'woo-seerbit' ), $seerbit_response->data->message );
+
+					}
+
+					$order->update_status( 'failed', $order_notice );
+
+					wc_add_notice( $failed_notice, 'error' );
+
+					do_action( 'wc_gateway_seerbit_process_payment_error', $failed_notice, $order );
+
+					return false;
+
+				}
+			}else{
+				
+				wc_add_notice( __( 'Payment Failed.', 'woo-seerbit' ), 'error' );
+
+				return false;
+			}
+		}else{
+
+			wc_add_notice( __( 'Payment Failed.', 'woo-seerbit' ), 'error' );
+
+			return false;
+
 		}
 	}
 
@@ -1129,6 +1276,46 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 				$subscription->save();
 			}
 
+		}
+
+	}
+
+	/**
+	 * Save payment token to the order after a new renewal order has been made.
+	 *
+	 * @param $order_id
+	 * @param $token
+	 */
+	public function save_subscription_renewal_payment_token( $order_id, $token ) {
+
+		if ( ! function_exists( 'wcs_order_contains_subscription' ) ) {
+			return;
+		}
+
+		if ( $this->order_contains_subscription( $order_id ) && $token ){
+			// Also store it on the subscriptions being purchased or paid for in the order
+			if ( function_exists( 'wcs_order_contains_subscription' ) && wcs_order_contains_subscription( $order_id ) ) {
+
+				$subscriptions = wcs_get_subscriptions_for_order( $order_id );
+
+			} elseif ( function_exists( 'wcs_order_contains_renewal' ) && wcs_order_contains_renewal( $order_id ) ) {
+
+				$subscriptions = wcs_get_subscriptions_for_renewal_order( $order_id );
+
+			} else {
+
+				$subscriptions = array();
+
+			}
+
+			if ( empty( $subscriptions ) ) {
+				return;
+			}
+
+			foreach ( $subscriptions as $subscription ) {
+				$subscription->update_meta_data( '_seerbit_token', $token );
+				$subscription->save();
+			}
 		}
 
 	}
