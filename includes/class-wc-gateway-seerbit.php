@@ -1208,9 +1208,107 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 
 		$event = json_decode( $json );
 
-		error_log(print_r($event->notificationItems[0]->notificationRequestItem, true));
+		$notification = $event->notificationItems[0]->notificationRequestItem;
 
+		if ($notification->data->code != '00' && (strtolower($notification->data->gatewayMessage) !== 'successful' || strtolower($notification->data->gatewayMessage) !== 'approved' )){
+			return;
+		}
 
+		sleep( 10 );
+
+		$seerbit_transaction = $this->get_seerbit_transaction($notification->data->reference);
+
+		if ( false === $seerbit_transaction ) {
+			return;
+		}
+
+		$order_details = explode('_', $seerbit_transaction->data->payments->paymentReference);
+
+		$order_id = (int) $order_details[0];
+
+		$order = wc_get_order( $order_id );
+
+		if ( ! $order ) {
+			return;
+		}
+
+		$seerbit_tranref = $order->get_meta( '_seerbit_tranref' );
+
+		if ($seerbit_transaction->data->payments->paymentReference != $seerbit_tranref){
+			exit;
+		}
+
+		http_response_code( 200 );
+
+		if ( in_array( strtolower( $order->get_status() ), array( 'processing', 'completed', 'on-hold' ), true ) ) {
+			exit;
+		}
+
+		$order_total      = $order->get_total();
+		$order_currency   = $order->get_currency();
+		$currency_symbol  = get_woocommerce_currency_symbol( $order_currency );
+		$amount_paid 	  = $seerbit_transaction->data->payments->amount;
+		$seerbit_ref 	  = $seerbit_transaction->data->payments->paymentReference;
+		$payment_currency = strtoupper( $seerbit_transaction->data->payments->currency);
+		$gateway_symbol   = get_woocommerce_currency_symbol( $payment_currency );
+
+		//Check if amount paid is equal to order amount.
+		if ( $amount_paid < absint($order_total)){
+			$order->update_status( 'on-hold', '' );
+
+			$order->add_meta_data( '_transaction_id', $seerbit_ref, true );
+
+			$notice      = sprintf( __( 'Thank you for your payment.%1$sYour payment transaction was successful, but the amount paid is not the same as the total order amount.%2$sYour order is currently on hold.%3$sKindly contact us for more information regarding your order and payment status.', 'woo-seerbit' ), '<br />', '<br />', '<br />' );
+			$notice_type = 'notice';
+
+			// Add Customer Order Note
+			$order->add_order_note( $notice, 1 );
+
+			// Add Admin Order Note
+			$admin_order_note = sprintf( __( '<strong>Look into this order</strong>%1$sThis order is currently on hold.%2$sReason: Amount paid is less than the total order amount.%3$sAmount Paid was <strong>%4$s (%5$s)</strong> while the total order amount is <strong>%6$s (%7$s)</strong>%8$s<strong>Seerbit Transaction Reference:</strong> %9$s', 'woo-seerbit' ), '<br />', '<br />', '<br />', $currency_symbol, $amount_paid, $currency_symbol, $order_total, '<br />', $seerbit_ref );
+			$order->add_order_note( $admin_order_note );
+
+			function_exists( 'wc_reduce_stock_levels' ) ? wc_reduce_stock_levels( $order_id ) : $order->reduce_order_stock();
+
+			wc_add_notice( $notice, $notice_type );
+		}else{
+			if ( $payment_currency !== $order_currency ) {
+
+				$order->update_status( 'on-hold', '' );
+
+				$order->update_meta_data( '_transaction_id', $seerbit_ref );
+
+				$notice      = sprintf( __( 'Thank you for your payment.%1$sYour payment was successful, but the payment currency is different from the order currency.%2$sYour order is currently on-hold.%3$sKindly contact us for more information regarding your order and payment status.', 'woo-seerbit' ), '<br />', '<br />', '<br />' );
+				$notice_type = 'notice';
+
+				// Add Customer Order Note
+				$order->add_order_note( $notice, 1 );
+
+				// Add Admin Order Note
+				$admin_order_note = sprintf( __( '<strong>Look into this order</strong>%1$sThis order is currently on hold.%2$sReason: Order currency is different from the payment currency.%3$sOrder Currency is <strong>%4$s (%5$s)</strong> while the payment currency is <strong>%6$s (%7$s)</strong>%8$s<strong>Seerbit Transaction Reference:</strong> %9$s', 'woo-seerbit' ), '<br />', '<br />', '<br />', $order_currency, $currency_symbol, $payment_currency, $gateway_symbol, '<br />', $seerbit_ref );
+				$order->add_order_note( $admin_order_note );
+
+				function_exists( 'wc_reduce_stock_levels' ) ? wc_reduce_stock_levels( $order_id ) : $order->reduce_order_stock();
+
+				wc_add_notice( $notice, $notice_type );
+
+			}else{
+				$order->payment_complete( $seerbit_ref );
+				$order->add_order_note( sprintf( __( 'Payment via Seerbit successful (Transaction Reference: %s)', 'woo-seerbit' ), $seerbit_ref ) );
+
+				if ( $this->is_autocomplete_order_enabled( $order ) ) {
+					$order->update_status( 'completed' );
+				}
+
+			}
+		}
+		$order->save();
+
+		$this->save_card_details( $seerbit_transaction, $order->get_user_id(), $order_id );
+
+		WC()->cart->empty_cart();
+
+		exit;
 	}
 
 	/**
