@@ -1238,6 +1238,9 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 			exit;
 		}
 
+		error_log(print_r($seerbit_tranref, true));
+
+
 		http_response_code( 200 );
 
 		if ( in_array( strtolower( $order->get_status() ), array( 'processing', 'completed', 'on-hold' ), true ) ) {
