@@ -1199,8 +1199,6 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 
 		$json = file_get_contents( 'php://input' );
 
-		error_log(print_r($json, true));
-
 		//$seerbit_enc_key = $this->get_seerbit_encrypted_key($this->public_key, $this->secret_key);
 
 		// validate event do all at once to avoid timing attack.
@@ -1210,11 +1208,15 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 
 		$event = json_decode( $json );
 
+		error_log(print_r($event, true));
+
 		$notification = $event->notificationItems[0]->notificationRequestItem;
 
 		if ($notification->data->code != '00' && (strtolower($notification->data->gatewayMessage) !== 'successful' || strtolower($notification->data->gatewayMessage) !== 'approved' )){
 			return;
 		}
+
+		error_log(print_r('webhook-progress', true));
 
 		sleep( 10 );
 
