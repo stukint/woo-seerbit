@@ -1218,13 +1218,15 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 
 		$seerbit_transaction = $this->get_seerbit_transaction($notification->data->reference);
 
-		error_log(print_r($seerbit_transaction, true));
+		
 
 		if ( false === $seerbit_transaction ) {
 			return;
 		}
 
 		$order_details = explode('_', $seerbit_transaction->data->payments->paymentReference);
+
+		error_log(print_r($order_details, true));
 
 		$order_id = (int) $order_details[0];
 
