@@ -1218,6 +1218,8 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 
 		$seerbit_transaction = $this->get_seerbit_transaction($notification->data->reference);
 
+		error_log(print_r($seerbit_transaction, true));
+
 		if ( false === $seerbit_transaction ) {
 			return;
 		}
@@ -1233,9 +1235,6 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 		}
 
 		$seerbit_tranref = $order->get_meta( '_seerbit_tranref' );
-
-		error_log(print_r($seerbit_transaction, true));
-		error_log(print_r($seerbit_tranref, true));
 
 		if ($seerbit_transaction->data->payments->paymentReference != $seerbit_tranref){
 			exit;
