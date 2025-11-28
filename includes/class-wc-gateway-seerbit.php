@@ -1238,6 +1238,7 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 			exit;
 		}
 
+		error_log(print_r($seerbit_transaction, true));
 		error_log(print_r($seerbit_tranref, true));
 
 
