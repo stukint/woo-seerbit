@@ -819,7 +819,7 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 			$customer_name = $first_name . ' ' . $last_name;
 			$payment_descr = 'Payment for Order Num #' . $order_id;
 			$currency      = $order->get_currency();
-			$country 	   = $order->get_billing_country();
+			$country 	   = 'NG';
 
 			$order->update_meta_data( '_seerbit_tranref', $tranref );
 			$order->save();
@@ -1488,7 +1488,7 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 	 * @param $seerbit_tranref
 	 * @return false|mixed
 	 */
-	private function get_seerbit_transaction( $seerbit_tranref ) {
+	public function get_seerbit_transaction( $seerbit_tranref ) {
 
 		$seerbit_url = 'https://seerbitapi.com/api/v3/payments/query/' . $seerbit_tranref;
 
