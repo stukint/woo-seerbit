@@ -867,7 +867,7 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 			if ( ! is_wp_error( $request ) && $response_code ===200 ) {
 				$seerbit_response = json_decode( wp_remote_retrieve_body( $request ) );
 
-				if(strtolower($seerbit_response->data->message) == 'successful'){
+				if(strtolower($seerbit_response->data->message) == 'successful' || strtolower($seerbit_response->data->message) == 'approved'){
 
 					$seerbit_transaction = $this->get_seerbit_transaction($seerbit_response->data->payments->paymentReference);
 					
@@ -1226,9 +1226,7 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 
 		$order_details = explode('_', $seerbit_transaction->data->payments->paymentReference);
 
-		error_log(print_r($order_details, true));
-
-		$order_id = (int) $order_details[0];
+		$order_id = (int) $order_details[1];
 
 		$order = wc_get_order( $order_id );
 
@@ -1352,7 +1350,6 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 			$token->set_expiry_month( $exp_month );
 			$token->set_expiry_year( $exp_year );
 			$token->set_user_id( $user_id );
-			error_log(print_r($token, true));
 
 			$token->save();
 
