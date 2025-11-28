@@ -1208,15 +1208,11 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 
 		$event = json_decode( $json );
 
-		error_log(print_r($event, true));
-
 		$notification = $event->notificationItems[0]->notificationRequestItem;
 
 		if ($notification->data->code != '00' && (strtolower($notification->data->gatewayMessage) !== 'successful' || strtolower($notification->data->gatewayMessage) !== 'approved' )){
 			return;
 		}
-
-		error_log(print_r('webhook-progress', true));
 
 		sleep( 10 );
 
@@ -1238,12 +1234,12 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 
 		$seerbit_tranref = $order->get_meta( '_seerbit_tranref' );
 
+		error_log(print_r($seerbit_transaction, true));
+		error_log(print_r($seerbit_tranref, true));
+
 		if ($seerbit_transaction->data->payments->paymentReference != $seerbit_tranref){
 			exit;
 		}
-
-		error_log(print_r($seerbit_transaction, true));
-		error_log(print_r($seerbit_tranref, true));
 
 
 		http_response_code( 200 );
