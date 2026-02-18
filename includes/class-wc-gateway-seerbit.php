@@ -741,10 +741,13 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 
 			$seerbit_response = json_decode( wp_remote_retrieve_body( $request ) );
 
-			return array(
-				'result'   => 'success',
-				'redirect' => $seerbit_response->data->payments->redirectLink
-			);
+			wp_redirect( $seerbit_response->data->payments->redirectLink );
+			exit;
+			
+			// return array(
+			// 	'result'   => 'success',
+			// 	'redirect' => $seerbit_response->data->payments->redirectLink
+			// );
 
 		}else{
 			wc_add_notice( __( 'Unable to process payment, please contact support', 'woo-seerbit' ), 'error' );
