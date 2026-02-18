@@ -729,12 +729,12 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 		$args = array(
 			'headers' => $headers,
 			'timeout' => 60,
-			'body'    => json_encode( $params ),
+			'body'    => json_encode( $seerbit_params ),
 		);
 
 		$request = wp_remote_post( $seerbit_url, $args );
 
-		error_log(print_r($params, true));
+		error_log(print_r($seerbit_params, true));
 
 
 		if ( ! is_wp_error( $request ) && 200 === wp_remote_retrieve_response_code( $request ) ) {
