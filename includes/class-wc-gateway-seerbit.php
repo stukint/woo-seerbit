@@ -498,6 +498,10 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 		$order_key = urldecode( $_GET['key'] );
 		$order_id  = absint( get_query_var( 'order-pay' ) );
 
+		if ( 'redirect' === $this->payment_page ) {
+			return $this->process_redirect_payment_option( $order_id );
+		}
+
 		$order = wc_get_order( $order_id );
 
 		if ( $this->id !== $order->get_payment_method() ) {
@@ -642,9 +646,9 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 			$order->save();
 		}
 
-		if ( 'redirect' === $this->payment_page ) {
-			return $this->process_redirect_payment_option( $order_id );
-		}
+		// if ( 'redirect' === $this->payment_page ) {
+		// 	return $this->process_redirect_payment_option( $order_id );
+		// }
 
 		return array(
 			'result'   => 'success',
