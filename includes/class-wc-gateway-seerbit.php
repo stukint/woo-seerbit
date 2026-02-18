@@ -499,7 +499,7 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 		$order_id  = absint( get_query_var( 'order-pay' ) );
 
 		if ( 'redirect' === $this->payment_page ) {
-			return $this->process_redirect_payment_option( $order_id );
+			//return $this->process_redirect_payment_option( $order_id );
 		}
 
 		$order = wc_get_order( $order_id );
