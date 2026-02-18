@@ -562,17 +562,15 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 		//Create function to store retrieve payment methods from settings when needed
 		$payment_methods = array('card');
 
+		$seerbit_params['payment_methods'] = $payment_methods;
+
 		if ( 'redirect' === $this->payment_page ) {
 			
-			$seerbit_params['customization'] = array(
-			'confetti' => false,
-			'payment_method' => $payment_methods
-			);
 			$this->process_redirect_payment_option( $seerbit_params );
 		
 		}else{
 		
-			$seerbit_params['payment_methods'] = $payment_methods;
+			
 			wp_localize_script( 'wc_seerbit', 'wc_seerbit_params', $seerbit_params );
 		
 		}
@@ -681,35 +679,35 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 		// $payment_descr = 'Payment for Order Num #' . $order_id;
 		// $currency      = $order->get_currency();
 		// $country 	   = 'NG';
-		// $callback_url = WC()->api_request_url( 'WC_Gateway_Seerbit' );
+		 $callback_url = WC()->api_request_url( 'WC_Gateway_Seerbit' );
 
-		// $seerbit_params = array(
-		// 	'publicKey' => $this->public_key,
-		// 	'amount' => $amount,
-		// 	'email' => $email,
-		// 	'currency' => $currency,
-		// 	'country' => $country,
-		// 	'paymentReference' => $tranref,
-		// 	'description' => $payment_descr,
-		// 	'fullName' => $customer_name,
-		// 	'callbackUrl' => $callback_url
-		// );
+		$seerbit_params = array(
+			'publicKey' => $params['public_key'],
+			'amount' => $params['amount'],
+			'email' => $params['email'],
+			'currency' => $params['currency'],
+			'country' => $params['country'],
+			'paymentReference' => $params['tranref'],
+			'description' => $params['description'],
+			'fullName' => $params['full_name'],
+			'callbackUrl' => $callback_url
+		 );
 
-		// if($this->split_payment && $this->split_code){
-		// 	$seerbit_params['splitCode'] = $this->split_code;
-		// }
+		if($this->split_payment && $this->split_code){
+			$seerbit_params['splitCode'] = $this->split_code;
+		}
 
-		// if($this->tokenize_cards){
-		// 	$seerbit_params['tokenize'] = true;
-		// }
+		if($this->tokenize_cards){
+			$seerbit_params['tokenize'] = true;
+		}
 
 		// //Create function to store retrieve payment methods from settings when needed
 		// $payment_methods = array('card');
 
-		// $seerbit_params['customization'] = array(
-		// 	'confetti' => false,
-		// 	'payment_method' => $payment_methods
-		// );
+		$seerbit_params['customization'] = array(
+			'confetti' => false,
+			'payment_method' => $params['payment_methods']
+		);
 
 		// $order->update_meta_data( '_seerbit_tranref', $tranref );
 		// $order->save();
