@@ -498,12 +498,6 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 		$order_key = urldecode( $_GET['key'] );
 		$order_id  = absint( get_query_var( 'order-pay' ) );
 
-		if ( 'redirect' === $this->payment_page ) {
-			return;
-			
-			//$this->process_redirect_payment_option( $order_id );
-		}
-
 		$order = wc_get_order( $order_id );
 
 		if ( $this->id !== $order->get_payment_method() ) {
@@ -568,10 +562,20 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 		//Create function to store retrieve payment methods from settings when needed
 		$payment_methods = array('card');
 
-		$seerbit_params['payment_methods'] = $payment_methods;
-
-		wp_localize_script( 'wc_seerbit', 'wc_seerbit_params', $seerbit_params );
-
+		if ( 'redirect' === $this->payment_page ) {
+			
+			$seerbit_params['customization'] = array(
+			'confetti' => false,
+			'payment_method' => $payment_methods
+			);
+			$this->process_redirect_payment_option( $seerbit_params );
+		
+		}else{
+		
+			$seerbit_params['payment_methods'] = $payment_methods;
+			wp_localize_script( 'wc_seerbit', 'wc_seerbit_params', $seerbit_params );
+		
+		}
 	}
 
     /**
@@ -665,50 +669,50 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 	 * @param int $order_id
 	 * @return array|void
 	 */
-	public function process_redirect_payment_option( $order_id ) {
+	public function process_redirect_payment_option( $params ) {
 		
-		$order        = wc_get_order( $order_id );
-		$email         = $order->get_billing_email();
-		$first_name	   = $order->get_billing_first_name();
-		$last_name	   = $order->get_billing_last_name();
-		$customer_name = $first_name . ' ' . $last_name;
-		$amount        = $order->get_total();
-		$tranref        = 'Seerbit_'. $order_id . '_' . time();
-		$payment_descr = 'Payment for Order Num #' . $order_id;
-		$currency      = $order->get_currency();
-		$country 	   = 'NG';
-		$callback_url = WC()->api_request_url( 'WC_Gateway_Seerbit' );
+		// $order        = wc_get_order( $order_id );
+		// $email         = $order->get_billing_email();
+		// $first_name	   = $order->get_billing_first_name();
+		// $last_name	   = $order->get_billing_last_name();
+		// $customer_name = $first_name . ' ' . $last_name;
+		// $amount        = $order->get_total();
+		// $tranref        = 'Seerbit_'. $order_id . '_' . time();
+		// $payment_descr = 'Payment for Order Num #' . $order_id;
+		// $currency      = $order->get_currency();
+		// $country 	   = 'NG';
+		// $callback_url = WC()->api_request_url( 'WC_Gateway_Seerbit' );
 
-		$seerbit_params = array(
-			'publicKey' => $this->public_key,
-			'amount' => $amount,
-			'email' => $email,
-			'currency' => $currency,
-			'country' => $country,
-			'paymentReference' => $tranref,
-			'description' => $payment_descr,
-			'fullName' => $customer_name,
-			'callbackUrl' => $callback_url
-		);
+		// $seerbit_params = array(
+		// 	'publicKey' => $this->public_key,
+		// 	'amount' => $amount,
+		// 	'email' => $email,
+		// 	'currency' => $currency,
+		// 	'country' => $country,
+		// 	'paymentReference' => $tranref,
+		// 	'description' => $payment_descr,
+		// 	'fullName' => $customer_name,
+		// 	'callbackUrl' => $callback_url
+		// );
 
-		if($this->split_payment && $this->split_code){
-			$seerbit_params['splitCode'] = $this->split_code;
-		}
+		// if($this->split_payment && $this->split_code){
+		// 	$seerbit_params['splitCode'] = $this->split_code;
+		// }
 
-		if($this->tokenize_cards){
-			$seerbit_params['tokenize'] = true;
-		}
+		// if($this->tokenize_cards){
+		// 	$seerbit_params['tokenize'] = true;
+		// }
 
-		//Create function to store retrieve payment methods from settings when needed
-		$payment_methods = array('card');
+		// //Create function to store retrieve payment methods from settings when needed
+		// $payment_methods = array('card');
 
-		$seerbit_params['customization'] = array(
-			'confetti' => false,
-			'payment_method' => $payment_methods
-		);
+		// $seerbit_params['customization'] = array(
+		// 	'confetti' => false,
+		// 	'payment_method' => $payment_methods
+		// );
 
-		$order->update_meta_data( '_seerbit_tranref', $tranref );
-		$order->save();
+		// $order->update_meta_data( '_seerbit_tranref', $tranref );
+		// $order->save();
 
 		$seerbit_enc_key = $this->get_seerbit_encrypted_key($this->public_key, $this->secret_key);
 
@@ -727,7 +731,7 @@ class WC_Gateway_Seerbit extends WC_Payment_Gateway_CC {
 		$args = array(
 			'headers' => $headers,
 			'timeout' => 60,
-			'body'    => json_encode( $seerbit_params ),
+			'body'    => json_encode( $params ),
 		);
 
 		$request = wp_remote_post( $seerbit_url, $args );
